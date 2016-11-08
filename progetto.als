@@ -3,7 +3,7 @@ sig User {
 }
 
 sig Vehicle{
-
+s: one Status
 }
 
 sig Time{
@@ -12,8 +12,8 @@ sig Time{
 sig Ride{
 u: one User,
 v: one Vehicle,
-ts: some TravelStop,
-td: some TravelDrive,
+ts: set TravelStop,
+td: set TravelDrive,
 time: one Time
 }
 
@@ -45,6 +45,21 @@ no r1,r2: Ride | r1 != r2 && r1.u = r2.u && r1.time = r2.time
 // non esistono tratte in comune a più corse
 fact noSameTravelMoreRides{
 no r1,r2: Ride | r1 != r2 && (r1.ts = r2.ts || r1.td = r2.td)
+}
+
+// ad ogni veicolo è associato uno status diverso
+fact noSameStatusDifferentVehicles{
+all v1,v2: Vehicle | (v1 != v2) => (v1.s != v2.s)
+}
+
+// nessun time associato alla ride
+pred noRideAssociated[t: Time]{
+no r:Ride | r.time = t
+}
+
+// non esiste un tempo senza una ride associata
+fact noTimeWithoutRide{
+all t: Time | not(noRideAssociated[t])
 }
 
 pred show(){
