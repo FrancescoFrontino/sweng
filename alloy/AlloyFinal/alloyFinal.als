@@ -174,20 +174,60 @@ fact noMoreTravelSameStatusAndDifferentCar{
 	no disjoint td1: TravelDrive,ts2: TravelStop |   td1.carStatus & ts2.carStatus !=none
 }
 
-//non esistono macchine on road non appartanenti ad una prenotazione o ad una ride
-//fact e assertion
+--- NEW ---
 
+//non esistono macchine on road non appartanenti ad una prenotazione o ad una ride
+fact noCarsOnRoadNotBelongingToReservationOrRide{
+no c: Car  | not(noReservationOrRide[c]) && c.status.tag = ONROAD
+}
+
+pred noReservationOrRide[c: Car]{
+no res: Reservation, ride: Ride | res.car = c || ride.car = c
+}
+
+---- QUESTA MI PARE RIDONDANTE VISTO CHE C'E' IL FACT, BOOOH
+assert noTravellingCarsWithoutReservationOrRide{
+no c: Car  | not(noReservationOrRide[c]) && c.status.tag = ONROAD
+}
+
+check noTravellingCarsWithoutReservationOrRide
 
 //assertion bonus batteria e passeggeri, sia fact che assertion
 
+assert bonusMeansEndRide{
+no r: Ride | r.batteryBonus = True && r.finalStatus = none
+no r: Ride | r.chargeBonus = True && r.finalStatus = none
+no r: Ride | r.negativeBonus = True && r.finalStatus = none
 
-// una volta che la prenotazione sia scaduta non vi è modo di annullare l'effetto ( no ride assertion ) 
+all r: Ride | (r.chargeBonus = True) implies (r.car.status.tag = BATTERYCHARGE)
+all r: Ride | (r.batteryBonus = True) implies (r.car.status.tag = AVAILABLE && r.car.status.batteryLow = False)
+all r: Ride | (r.negativeBonus = True) implies (r.car.status.batteryLow = True || (r.car.status.distanceGreater = True))
+}
 
-//anche viceversa
-
-//
+check bonusMeansEndRide
 
 
+// una volta che la prenotazione sia scaduta non vi è modo di annullare l'effetto ( no ride assertion )
+assert expiredReservationImpliesNoRide{
+all res: Reservation | (res.expired = True) implies (noRideRelated[res])
+}
+
+pred noRideRelated[res: Reservation]{
+no r: Ride | r = res.ride
+}
+
+check expiredReservationImpliesNoRide
+
+//se ho una ride significa che la prenotazione non è scaduta
+assert rideMeansNoExpiredReservation{
+all r: Ride | reservationRelated[r]
+}
+
+pred reservationRelated[r: Ride]{
+one res: Reservation | res.ride = r && res.expired = False
+}
+
+check rideMeansNoExpiredReservation
 
 
 //----------------RUN---------------------
