@@ -38,8 +38,8 @@ sig Reservation{
 	expired: one Bool,
 	ride:lone Ride
 }{ 
-	(ride!=none) <=> (expired=False) 
-	(expired=True) => (car.status.tag = AVAILABLE || car.status.tag = BATTERYCHARGE)  //mod
+	(expired=False) =>(ride!=none) || (ride=none && car.status.tag=BOOKED)
+	(expired=True) => (car.status.tag = AVAILABLE || car.status.tag = BATTERYCHARGE)  
 }
 
 sig Ride{
@@ -57,14 +57,6 @@ sig Ride{
 	chargeBonus=True <=>	finalStatus.tag=BATTERYCHARGE	
 	batteryBonus=True <=> (finalStatus.tag=AVAILABLE && finalStatus.batteryLow=False)	 //?
 	negativeBonus=True <=>(finalStatus.distanceGreater=True || finalStatus.batteryLow=True)
-	//tutte le fermate sono sempre +1 rispetto ad una tratta
-	//#stop = (#drive)
-}
-
-	//tutte le fermate rsono sempre +1 rispetto ad una tratta
-	//#stop = (#drive)
-fact djskdjsk{
-	all ride:Ride| #ride.stop=(#ride.drive+1)
 }
 
 abstract sig Travel{
@@ -82,13 +74,14 @@ sig TravelDrive extends Travel{
 	passengerBonus: one Bool 
 }{
 	carStatus.tag = ONROAD
-	(passengerBonus=True) <=> carStatus.passengerNumber>2
+	(passengerBonus=True) <=> (carStatus.passengerNumber=3 || carStatus.passengerNumber=4)
 }
 
 sig Violation{ }
 
 
 //----------------FACT---------------------
+
 
 //esiste un solo finalStatus associato ad ogni ride
 fact oneFinalStatusForRide{
@@ -124,7 +117,8 @@ fact noMoreRideSameViolation{
 	no disjoint r1,r2:Ride | r1.violation & r2.violation !=none 
 }
 
-//ogni ride è composta da tratte univoche 
+//ogni ride è composta da tratte univoche
+
 fact noMoreRideSameTravel{
 	no disjoint r1,r2:Ride | r1.stop & r2.stop != none
 	no disjoint r1,r2:Ride | r1.drive & r2.drive != none  
@@ -162,10 +156,6 @@ pred statusUnique[car1:Car]{
 	no ride:Ride| ride.car!=car1 && (car1.status&ride.finalStatus!=none)
 }
 
-pred statusUnique[ carStatus:CarStatus]{
-	no car1:Car| carStatus.car!=car1 && car1.status = carStatus
-}
-
 //non esistono tratte con lo stesso stato e lo stato si riferisce alla macchina della prenotazione
 
 fact noMoreTravelSameStatusAndDifferentCar{
@@ -174,23 +164,20 @@ fact noMoreTravelSameStatusAndDifferentCar{
 	no disjoint td1: TravelDrive,ts2: TravelStop |   td1.carStatus & ts2.carStatus !=none
 }
 
---- NEW ---
-
 //non esistono macchine on road non appartanenti ad una prenotazione o ad una ride
 fact noCarsOnRoadNotBelongingToReservationOrRide{
-no c: Car  | not(noReservationOrRide[c]) && c.status.tag = ONROAD
+	no c: Car  | noReservationOrRide[c] && c.status.tag = ONROAD
+	no c: Car  | noReservationOrRide[c]  &&  c.status.tag = PARKING
+	no c: Car  | noReservationOrRide[c]  &&  c.status.tag = BOOKED
 }
 
 pred noReservationOrRide[c: Car]{
-no res: Reservation, ride: Ride | res.car = c || ride.car = c
+	no res: Reservation, ride: Ride | res.car = c || ride.car = c
 }
 
----- QUESTA MI PARE RIDONDANTE VISTO CHE C'E' IL FACT, BOOOH
-assert noTravellingCarsWithoutReservationOrRide{
-no c: Car  | not(noReservationOrRide[c]) && c.status.tag = ONROAD
-}
 
-check noTravellingCarsWithoutReservationOrRide
+//----------------RUN---------------------
+
 
 //assertion bonus batteria e passeggeri, sia fact che assertion
 
@@ -225,17 +212,20 @@ all r: Ride | reservationRelated[r]
 
 pred reservationRelated[r: Ride]{
 one res: Reservation | res.ride = r && res.expired = False
-}
+}  
 
 check rideMeansNoExpiredReservation
 
 
 //----------------RUN---------------------
 
-pred show(){
-	//per maggiore chiarezza e per mostrare i casi principali
+pred show(){/*
+	//for special cases
 	all ride:Ride | #ride.violation <=1 
-	one ride:Ride | ride.finalStatus!=none && ride.batteryBonus=True 
+	lone ride:Ride | ride.finalStatus!=none && ride.batteryBonus=True 
+	lone ride:Ride | ride.finalStatus!=none && ride.chargeBonus =True
+	one ride:Ride | ride.finalStatus!=none && ride.drive.passengerBonus = True 
+	one res:Reservation| res.expired=False && res.car.status.tag = BOOKED	*/
 }
 
-run show for 6
+run show for 10 but 1 Violation 
