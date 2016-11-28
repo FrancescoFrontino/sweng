@@ -48,7 +48,7 @@ sig Ride{
 	stop: some TravelStop,
 	drive: some TravelDrive,
 	finalStatus: lone CarStatus,
-	violation:some Violation,
+	violation: set Violation,
 	chargeBonus: one Bool, 
 	batteryBonus: one Bool, 
 	negativeBonus: one Bool
@@ -191,9 +191,9 @@ all r: Ride | (r.batteryBonus = True) implies (r.car.status.tag = AVAILABLE && r
 all r: Ride | (r.negativeBonus = True) implies (r.car.status.batteryLow = True || (r.car.status.distanceGreater = True))
 }
 
-check bonusMeansEndRide
+//check bonusMeansEndRide
 
-
+/*
 // una volta che la prenotazione sia scaduta non vi è modo di annullare l'effetto ( no ride assertion )
 assert expiredReservationImpliesNoRide{
 all res: Reservation | (res.expired = True) implies (noRideRelated[res])
@@ -203,7 +203,7 @@ pred noRideRelated[res: Reservation]{
 no r: Ride | r = res.ride
 }
 
-check expiredReservationImpliesNoRide
+//check expiredReservationImpliesNoRide
 
 //se ho una ride significa che la prenotazione non è scaduta
 assert rideMeansNoExpiredReservation{
@@ -215,17 +215,16 @@ one res: Reservation | res.ride = r && res.expired = False
 }  
 
 check rideMeansNoExpiredReservation
-
+*/
 
 //----------------RUN---------------------
 
-pred show(){/*
+pred show(){
 	//for special cases
-	all ride:Ride | #ride.violation <=1 
 	lone ride:Ride | ride.finalStatus!=none && ride.batteryBonus=True 
-	lone ride:Ride | ride.finalStatus!=none && ride.chargeBonus =True
+	one ride:Ride | ride.finalStatus!=none && ride.chargeBonus =False
 	one ride:Ride | ride.finalStatus!=none && ride.drive.passengerBonus = True 
-	one res:Reservation| res.expired=False && res.car.status.tag = BOOKED	*/
+	one res:Reservation| res.expired=False && res.car.status.tag = BOOKED	
 }
 
-run show for 10 but 1 Violation 
+run show for 10 but 0 Violation
